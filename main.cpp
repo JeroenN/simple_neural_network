@@ -16,7 +16,10 @@ typedef std::vector<neuron> layer;
 class neuron
 {
 public:
-    neuron(unsigned n_outputs);
+    neuron(unsigned n_outputs, unsigned my_index);
+    void set_output_value(double val) {m_output_value=val;}
+    double get_output_value(void) const {return m_output_value;}
+    void feed_forward(const layer &prev_layer);
 private:
     static double random_weight(void)
     {
@@ -27,7 +30,20 @@ private:
 
 };
 
-neuron::neuron(unsigned n_outputs)
+neuron::feed_forward(const layer &prev_layer)
+{
+    double sum =0.0;
+
+    //sum the previous layers outputs (which are inputs)
+    // include the bias node from the previous layer.
+
+    for(unsigned n=0; n< prev_layer.size(); ++n)
+    {
+        sum+=prev_layer[n].get_output_value() * prev_layer[n].m_output_weights[m_my_index].weight;
+    }
+}
+
+neuron::neuron(unsigned n_outputs, unsigned my_index)
 {
     for(unsigned c=0; c< n_outputs; ++c)
     {
@@ -50,13 +66,29 @@ private:
 
 void net::feed_forward(const std::vector<double> &input_values)
 {
-    assert(input_values.size() == m_layers[0].size() );
+    assert(input_values.size() == m_layers[0].size() -1);
+
+    //Assign the input values into the input neurons
+    for(unsigned i=0; i<input_values.size(); ++i)
+    {
+        m_layers[0][i].set_output_value(input_values[i]);
+    }
+
+    //forward propagate
+    for(unsigned layer_number=1; layer_number<m_layers.size(); ++layer_number)
+    {
+        layer &prev_layer = n_layers[layer_number -1];
+        for(unsigned n=0; n<m_layers[layer_number].size() -1; ++n)
+        {
+            m_layers[layer_number][n].feed_forward(prev_layer);
+        }
+    }
 }
 net::net(const std::vector<unsigned> &topology)
 {
     //creating rows and columns -> layers and neurons
     unsigned n_layers = topology.size();
-    for(unsigned layer_number=0; layer_number<n_layers; ++layer_number)
+    for(unsigned layer_number=0; layer_number!=n_layers; ++layer_number)
     {
         m_layers.push_back(layer());
         unsigned n_outputs;
